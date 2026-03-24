@@ -5,13 +5,29 @@ import {
   PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { Thermometer, Droplets, CloudRain, Wind, TrendingUp, Calendar, ChevronRight } from 'lucide-react';
+import { Thermometer, Droplets, CloudRain, Wind, TrendingUp, Calendar, ChevronDown } from 'lucide-react';
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('all'); // 'all', 'temp', 'humidity', 'rainfall'
   const [timeScale, setTimeScale] = useState('daily'); // 'daily', 'weekly'
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    const scrollElements = document.querySelectorAll('.reveal-on-scroll');
+    scrollElements.forEach(el => observer.observe(el));
+
+    return () => scrollElements.forEach(el => observer.unobserve(el));
+  }, [loading, selectedMetric, data]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,16 +99,30 @@ const Dashboard = () => {
   );
 
   const renderTimeScaleToggle = () => (
-    <div className="toggle-group">
-      <Calendar size={16} color="var(--text-dim)" />
-      <select 
-        value={timeScale} 
-        onChange={(e) => setTimeScale(e.target.value)}
-        style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', cursor: 'pointer' }}
-      >
-        <option value="daily" style={{ background: 'var(--surface)' }}>Daily View</option>
-        <option value="weekly" style={{ background: 'var(--surface)' }}>Weekly Aggregation</option>
-      </select>
+    <div className="custom-dropdown">
+      <div className="dropdown-header" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={16} color="var(--primary)" />
+          {timeScale === 'daily' ? 'Daily View' : 'Weekly Aggregation'}
+        </span>
+        <ChevronDown size={16} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' , transition: '0.3s' }} />
+      </div>
+      {isDropdownOpen && (
+        <div className="dropdown-list">
+          <div 
+            className={`dropdown-item ${timeScale === 'daily' ? 'selected' : ''}`}
+            onClick={() => { setTimeScale('daily'); setIsDropdownOpen(false); }}
+          >
+            Daily View
+          </div>
+          <div 
+            className={`dropdown-item ${timeScale === 'weekly' ? 'selected' : ''}`}
+            onClick={() => { setTimeScale('weekly'); setIsDropdownOpen(false); }}
+          >
+            Weekly Aggregation
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -115,19 +145,19 @@ const Dashboard = () => {
 
       {/* Summary Stats */}
       <div className="stat-grid">
-        <div className="glass-card stat-card">
+        <div className="glass-card stat-card reveal-on-scroll">
           <div className="stat-label"><Thermometer size={14} style={{ marginRight: '6px' }}/> Avg Temperature</div>
           <div className="stat-value">{data.summary.avg_temp}°C</div>
         </div>
-        <div className="glass-card stat-card" style={{ borderLeftColor: 'var(--secondary)' }}>
+        <div className="glass-card stat-card reveal-on-scroll" style={{ borderLeftColor: 'var(--secondary)' }}>
           <div className="stat-label"><Droplets size={14} style={{ marginRight: '6px' }}/> Avg Humidity</div>
           <div className="stat-value">{data.summary.avg_humidity}%</div>
         </div>
-        <div className="glass-card stat-card" style={{ borderLeftColor: 'var(--accent)' }}>
+        <div className="glass-card stat-card reveal-on-scroll" style={{ borderLeftColor: 'var(--accent)' }}>
           <div className="stat-label"><CloudRain size={14} style={{ marginRight: '6px' }}/> Total Rainfall</div>
           <div className="stat-value">{data.summary.total_rainfall}mm</div>
         </div>
-        <div className="glass-card stat-card" style={{ borderLeftColor: '#f59e0b' }}>
+        <div className="glass-card stat-card reveal-on-scroll" style={{ borderLeftColor: '#f59e0b' }}>
           <div className="stat-label"><TrendingUp size={14} style={{ marginRight: '6px' }}/> Peak Reading</div>
           <div className="stat-value">{data.summary.max_temp}°C</div>
         </div>
@@ -136,7 +166,7 @@ const Dashboard = () => {
       <div className="dashboard-grid">
         {/* Temperature Trend */}
         {(selectedMetric === 'all' || selectedMetric === 'temp') && (
-          <div className="glass-card" style={selectedMetric === 'temp' ? { gridColumn: '1 / -1' } : {}}>
+          <div className="glass-card reveal-on-scroll" style={selectedMetric === 'temp' ? { gridColumn: '1 / -1' } : {}}>
             <div className="chart-header">
               <h3 className="chart-title">Temperature Variations</h3>
             </div>
@@ -165,7 +195,7 @@ const Dashboard = () => {
 
         {/* Humidity Trend */}
         {(selectedMetric === 'all' || selectedMetric === 'humidity') && (
-          <div className="glass-card" style={selectedMetric === 'humidity' ? { gridColumn: '1 / -1' } : {}}>
+          <div className="glass-card reveal-on-scroll" style={selectedMetric === 'humidity' ? { gridColumn: '1 / -1' } : {}}>
             <div className="chart-header">
               <h3 className="chart-title">Saturation Levels</h3>
             </div>
@@ -187,7 +217,7 @@ const Dashboard = () => {
 
         {/* Rainfall Trend */}
         {(selectedMetric === 'all' || selectedMetric === 'rainfall') && (
-          <div className="glass-card" style={{ gridColumn: (selectedMetric === 'all' ? '1 / -1' : '1 / -1') }}>
+          <div className="glass-card reveal-on-scroll" style={{ gridColumn: (selectedMetric === 'all' ? '1 / -1' : '1 / -1') }}>
             <div className="chart-header">
               <h3 className="chart-title">Atmospheric Precipitation</h3>
             </div>
@@ -216,7 +246,7 @@ const Dashboard = () => {
           ].filter(i => i.value > 0);
 
           return (
-            <div className="glass-card donut-card" style={{ gridColumn: '1 / -1' }}>
+            <div className="glass-card donut-card reveal-on-scroll" style={{ gridColumn: '1 / -1' }}>
               <div className="chart-header" style={{ width: '100%' }}>
                 <h3 className="chart-title">Ecological Temperature Spectrum</h3>
               </div>

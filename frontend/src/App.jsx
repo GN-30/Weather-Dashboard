@@ -3,6 +3,9 @@ import Dashboard from './components/Dashboard'
 import Landing from './components/Landing'
 import Sidebar from './components/Sidebar'
 import DynamicBackground from './components/DynamicBackground'
+import Analysis from './components/Analysis'
+import About from './components/About'
+import Settings from './components/Settings'
 import './index.css'
 
 function App() {
@@ -23,16 +26,10 @@ function App() {
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <main className="main-content">
-        {activeTab === 'dashboard' ? (
-          <Dashboard />
-        ) : (
-          <div className="dashboard-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div className="glass-card" style={{ padding: '4rem', textAlign: 'center' }}>
-              <h2 style={{ color: '#fff', fontSize: '2rem', marginBottom: '1rem' }}>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Section</h2>
-              <p style={{ color: 'var(--text-dim)' }}>This feature is currently under development to ensure the highest quality experience.</p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'analysis' && <Analysis />}
+        {activeTab === 'about' && <About />}
+        {activeTab === 'settings' && <Settings />}
       </main>
     </div>
   )

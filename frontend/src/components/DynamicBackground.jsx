@@ -30,7 +30,7 @@ const DynamicBackground = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw Rain
-      ctx.strokeStyle = 'rgba(174, 194, 224, 0.15)';
+      ctx.strokeStyle = 'rgba(174, 194, 224, 0.12)';
       ctx.lineWidth = 1;
       drops.forEach(drop => {
         ctx.beginPath();
@@ -46,40 +46,46 @@ const DynamicBackground = () => {
       });
 
       // Draw Ripples
-      ripplesRef.current.forEach((ripple, index) => {
+      for (let i = ripplesRef.current.length - 1; i >= 0; i--) {
+        const ripple = ripplesRef.current[i];
         ctx.beginPath();
         ctx.arc(ripple.x, ripple.y, ripple.r, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(99, 102, 241, ${ripple.opacity})`;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        ripple.r += 2;
+        ripple.r += 1.5;
         ripple.opacity -= 0.01;
 
         if (ripple.opacity <= 0) {
-          ripplesRef.current.splice(index, 1);
+          ripplesRef.current.splice(i, 1);
         }
-      });
+      }
 
       animationFrameId = requestAnimationFrame(draw);
     };
 
     draw();
 
-    const handleClick = (e) => {
-      ripplesRef.current.push({
-        x: e.clientX,
-        y: e.clientY,
-        r: 5,
-        opacity: 0.5
-      });
+    let lastMove = 0;
+    const handleMouseMove = (e) => {
+      const now = Date.now();
+      if (now - lastMove > 50) { // Throttle ripple creation
+        ripplesRef.current.push({
+          x: e.clientX,
+          y: e.clientY,
+          r: 5,
+          opacity: 0.4
+        });
+        lastMove = now;
+      }
     };
 
-    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
