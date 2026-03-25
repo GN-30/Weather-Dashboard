@@ -5,7 +5,6 @@ import Sidebar from './components/Sidebar'
 import DynamicBackground from './components/DynamicBackground'
 import Analysis from './components/Analysis'
 import About from './components/About'
-import Settings from './components/Settings'
 import './index.css'
 
 function App() {
@@ -29,7 +28,6 @@ function App() {
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'analysis' && <Analysis />}
         {activeTab === 'about' && <About />}
-        {activeTab === 'settings' && <Settings />}
       </main>
     </div>
   )

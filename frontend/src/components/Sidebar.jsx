@@ -1,12 +1,11 @@
 import React from 'react';
-import { LayoutDashboard, LineChart, Info, Settings, Wind, Menu } from 'lucide-react';
+import { LayoutDashboard, LineChart, Info, Wind, Menu } from 'lucide-react';
 
 const Sidebar = ({ activeTab, onTabChange }) => {
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'analysis', icon: LineChart, label: 'Analytics' },
-    { id: 'about', icon: Info, label: 'About' },
-    { id: 'settings', icon: Settings, label: 'Settings' }
+    { id: 'about', icon: Info, label: 'About' }
   ];
 
   return (

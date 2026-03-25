@@ -1,10 +1,70 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
 const Landing = ({ onStart }) => {
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [isLightning, setIsLightning] = useState(false);
+  const [boltPos, setBoltPos] = useState({ left: '50%' });
+
+  useEffect(() => {
+    const triggerLightning = () => {
+      setBoltPos({ left: `${Math.random() * 80 + 10}%` });
+      setIsLightning(true);
+      setTimeout(() => setIsLightning(false), 150);
+      
+      // Randomly chain a second bolt
+      if (Math.random() > 0.6) {
+        setTimeout(() => {
+          setBoltPos({ left: `${Math.random() * 80 + 10}%` });
+          setIsLightning(true);
+          setTimeout(() => setIsLightning(false), 100);
+        }, 300);
+      }
+      
+      const nextStrike = Math.random() * 8000 + 4000;
+      setTimeout(triggerLightning, nextStrike);
+    };
+
+    const initialTimeout = setTimeout(triggerLightning, 5000);
+    return () => clearTimeout(initialTimeout);
+  }, []);
+
+  const handleMouseMove = (e) => {
+    const { clientX, clientY } = e;
+    const x = (clientX / window.innerWidth) * 100;
+    const y = (clientY / window.innerHeight) * 100;
+    setMousePos({ x, y });
+  };
+
   return (
-    <div className="landing-container">
+    <div className="landing-container" onMouseMove={handleMouseMove}>
+      <div className={`lightning-flash ${isLightning ? 'active' : ''}`}></div>
+      {isLightning && (
+        <svg className="lightning-bolt" style={{ left: boltPos.left }} viewBox="0 0 100 600">
+          <path d={`M 50 0 L ${40 + Math.random() * 20} 100 L ${60 + Math.random() * 20} 200 L ${30 + Math.random() * 20} 350 L ${70 + Math.random() * 20} 500 L 50 600`} fill="none" stroke="#fff" strokeWidth="4" filter="url(#glow)" />
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+        </svg>
+      )}
       <div className="landing-bg"></div>
+      <div className="aurora-container">
+        <div className="aurora-beam beam-1"></div>
+        <div className="aurora-beam beam-2"></div>
+        <div className="aurora-beam beam-3"></div>
+      </div>
+      <div 
+        className="lighting-spotlight" 
+        style={{ 
+          background: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(99, 102, 241, 0.08) 0%, transparent 60%)` 
+        }}
+      ></div>
       
       <div className="hero-content">
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
@@ -25,7 +85,7 @@ const Landing = ({ onStart }) => {
         </p>
         
         <button className="cta-button" onClick={onStart}>
-          Begin Journey <ArrowRight size={20} />
+          Initialize Climate Analytics <ArrowRight size={20} />
         </button>
       </div>
 
