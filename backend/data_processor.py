@@ -1,45 +1,100 @@
+import os
+import requests
 import pandas as pd
-import json
+from datetime import datetime
+from dotenv import load_dotenv
 
-def get_processed_data():
-    # Load data
-    df = pd.read_csv('weather_data.csv')
+load_dotenv()
+API_KEY = os.getenv('OPENWEATHER_API_KEY')
+BASE_URL = "https://api.openweathermap.org/data/2.5/forecast"
+
+def get_processed_data(city='Delhi'):
+    if not API_KEY:
+        raise ValueError("OpenWeather API Key not found in .env file")
+
+    params = {
+        'q': city,
+        'appid': API_KEY,
+        'units': 'metric'
+    }
+
+    try:
+        response = requests.get(BASE_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        raise Exception(f"Failed to fetch data from OpenWeather: {str(e)}")
+
+    # Process OWM forecast data
+    # data['list'] contains 40 data points (every 3 hours for 5 days)
+    records = []
+    for item in data['list']:
+        dt = datetime.fromtimestamp(item['dt'])
+        records.append({
+            'date': dt,
+            'date_str': dt.strftime('%H:%M'), # For daily 3hr view
+            'day_label': dt.strftime('%b %d'),
+            'temperature': item['main']['temp'],
+            'humidity': item['main']['humidity'],
+            'rainfall': item.get('rain', {}).get('3h', 0) if isinstance(item.get('rain'), dict) else 0,
+            'week': dt.isocalendar()[1]
+        })
+
+    df = pd.DataFrame(records)
     
-    # Simple cleaning (ensure types)
-    df['date'] = pd.to_datetime(df['date'])
-    df['temperature'] = pd.to_numeric(df['temperature'])
-    df['humidity'] = pd.to_numeric(df['humidity'])
-    df['rainfall'] = pd.to_numeric(df['rainfall'])
+    # 1. Daily trends (next 24 hours - approx 8 points)
+    daily_data = df.head(8).to_dict(orient='records')
     
-    # Sort by date just in case
-    df = df.sort_values('date')
+    # 2. Weekly averages (grouped by day for the 5-day forecast)
+    df['date_only'] = df['date'].dt.strftime('%Y-%m-%d')
+    weekly_avg = df.groupby('date_only').agg({
+        'temperature': 'mean',
+        'humidity': 'mean',
+        'rainfall': 'sum'
+    }).reset_index()
     
-    # Format date for JSON (string)
-    df['date_str'] = df['date'].dt.strftime('%b %d')
+    # week_label is the day name
+    weekly_avg['week_label'] = pd.to_datetime(weekly_avg['date_only']).dt.strftime('%a')
     
-    # Daily trends (original data for daily visualization)
-    # Convert Timestamp to string for JSON serialization
-    df_daily = df.copy()
-    df_daily['date'] = df_daily['date'].dt.strftime('%Y-%m-%d')
-    daily_data = df_daily.to_dict(orient='records')
-    
-    # Weekly averages (example aggregation)
-    df['week'] = df['date'].dt.isocalendar().week
-    weekly_avg = df.groupby('week')[['temperature', 'humidity', 'rainfall']].mean().reset_index()
-    weekly_avg['week_label'] = 'Week ' + weekly_avg['week'].astype(str)
-    
+    # 3. Summary
+    summary = {
+        'avg_temp': round(df['temperature'].mean(), 1),
+        'max_temp': round(df['temperature'].max(), 1),
+        'min_temp': round(df['temperature'].min(), 1),
+        'avg_humidity': round(df['humidity'].mean(), 1),
+        'total_rainfall': round(df['rainfall'].sum(), 1),
+        'city_name': f"{data['city']['name']}, {data['city']['country']}"
+    }
+
     return {
         'daily': daily_data,
         'weekly': weekly_avg.to_dict(orient='records'),
-        'summary': {
-            'avg_temp': round(df['temperature'].mean(), 1),
-            'max_temp': round(df['temperature'].max(), 1),
-            'min_temp': round(df['temperature'].min(), 1),
-            'avg_humidity': round(df['humidity'].mean(), 1),
-            'total_rainfall': round(df['rainfall'].sum(), 1)
-        }
+        'summary': summary
     }
 
-if __name__ == "__main__":
-    data = get_processed_data()
-    print(json.dumps(data, indent=2))
+def get_city_suggestions(query):
+    if not API_KEY:
+        return []
+    
+    geo_url = "http://api.openweathermap.org/geo/1.0/direct"
+    params = {
+        'q': query,
+        'limit': 5,
+        'appid': API_KEY
+    }
+    
+    try:
+        response = requests.get(geo_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        suggestions = []
+        for item in data:
+            label = f"{item['name']}, {item.get('state', '')} {item['country']}".replace("  ", " ").strip()
+            suggestions.append({
+                'name': item['name'],
+                'label': label
+            })
+        return suggestions
+    except Exception:
+        return []

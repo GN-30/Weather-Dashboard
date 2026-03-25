@@ -10,9 +10,14 @@ import { Thermometer, Droplets, CloudRain, Wind, TrendingUp, Calendar, ChevronDo
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedMetric, setSelectedMetric] = useState('all'); // 'all', 'temp', 'humidity', 'rainfall'
-  const [timeScale, setTimeScale] = useState('daily'); // 'daily', 'weekly'
+  const [selectedMetric, setSelectedMetric] = useState('all'); 
+  const [timeScale, setTimeScale] = useState('daily'); 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [city, setCity] = useState('Delhi');
+  const [searchInput, setSearchInput] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [error, setError] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -33,17 +38,56 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await axios.get('http://localhost:5000/api/weather');
+        const response = await axios.get(`http://localhost:5000/api/weather?city=${city}`);
         setData(response.data);
       } catch (error) {
         console.error("Error fetching weather data:", error);
+        setError("Location not found or API error. Try another city.");
+        // Removed setCity('Delhi') to prevent aggressive reverting
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [city]);
+
+  // Handle Suggestions Fetching
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchInput.trim().length < 3) {
+        setSuggestions([]);
+        return;
+      }
+      try {
+        const response = await axios.get(`http://localhost:5000/api/suggestions?q=${searchInput}`);
+        setSuggestions(response.data);
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      }
+    };
+
+    const timer = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setCity(searchInput.trim());
+      setSearchInput('');
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectSuggestion = (suggestion) => {
+    setCity(suggestion.name);
+    setSearchInput('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
 
   if (loading) {
     return (
@@ -133,10 +177,46 @@ const Dashboard = () => {
       <header>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>
           <TrendingUp size={16} />
-          <span style={{ fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase' }}>Insights Explorer</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase' }}>Insights Explorer • {data?.summary?.city_name || city}</span>
         </div>
-        <h1>Climate Analysis Dashboard</h1>
-        <p style={{ color: 'var(--text-dim)', marginBottom: '2rem' }}>Precision monitoring and predictive trend analysis.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1>Climate Analysis Dashboard</h1>
+            <p style={{ color: 'var(--text-dim)', marginBottom: '2rem' }}>Precision monitoring and predictive trend analysis.</p>
+          </div>
+          
+          <div className="search-container">
+            <form onSubmit={handleSearch} className="search-bar">
+              <input 
+                type="text" 
+                placeholder="Search Global City..." 
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onFocus={() => setShowSuggestions(true)}
+              />
+              <button type="submit">Search</button>
+            </form>
+            
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="suggestions-list">
+                {suggestions.map((s, idx) => (
+                  <div 
+                    key={idx} 
+                    className="suggestion-item"
+                    onClick={() => selectSuggestion(s)}
+                  >
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {error && <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '-1.5rem', marginBottom: '1.5rem' }}>{error}</p>}
       </header>
 
       {/* Controls Bar */}
