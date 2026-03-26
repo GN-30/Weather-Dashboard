@@ -17,8 +17,13 @@ def get_weather():
         data = get_processed_data(city)
         return jsonify(data)
     except Exception as e:
-        print(f"API ERROR: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        error_msg = str(e)
+        print(f"API ERROR for city '{city}': {error_msg}")
+        return jsonify({
+            'error': error_msg,
+            'city': city,
+            'status': 'error'
+        }), 500
 
 @app.route('/api/suggestions', methods=['GET'])
 def get_suggestions():
