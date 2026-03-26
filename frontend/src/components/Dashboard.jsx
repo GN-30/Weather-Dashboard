@@ -7,6 +7,8 @@ import {
 } from 'recharts';
 import { Thermometer, Droplets, CloudRain, Wind, TrendingUp, Calendar, ChevronDown } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,18 +42,20 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
+      // setData(null); // Optional: Clear data to show loading for new cities
       try {
-        const response = await axios.get(`http://localhost:5000/api/weather?city=${city}`);
+        const response = await axios.get(`${API_BASE_URL}/api/weather`, {
+          params: { city: city.trim() }
+        });
         setData(response.data);
       } catch (error) {
         console.error("Error fetching weather data:", error);
         setError("Location not found or API error. Try another city.");
-        // Removed setCity('Delhi') to prevent aggressive reverting
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    if (city) fetchData();
   }, [city]);
 
   // Handle Suggestions Fetching
@@ -62,7 +66,9 @@ const Dashboard = () => {
         return;
       }
       try {
-        const response = await axios.get(`http://localhost:5000/api/suggestions?q=${searchInput}`);
+        const response = await axios.get(`${API_BASE_URL}/api/suggestions`, {
+          params: { q: searchInput.trim() }
+        });
         setSuggestions(response.data);
       } catch (error) {
         console.error("Error fetching suggestions:", error);

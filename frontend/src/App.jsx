@@ -22,7 +22,7 @@ function App() {
   return (
     <div className="app-layout">
       <DynamicBackground />
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} setView={setView} />
       
       <main className="main-content">
         {activeTab === 'dashboard' && <Dashboard />}
